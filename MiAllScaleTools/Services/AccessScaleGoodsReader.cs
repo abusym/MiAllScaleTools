@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Data.OleDb;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -104,12 +105,14 @@ namespace MiAllScaleTools.Services
 
         private static string BuildConnectionString(string dbPath, out string providerUsed)
         {
-            // Try ACE first (most common on modern machines), then fallback to Jet (legacy mdb).
-            var candidates = new[]
-            {
-                "Microsoft.ACE.OLEDB.12.0",
-                "Microsoft.Jet.OLEDB.4.0"
-            };
+            var ext = Path.GetExtension(dbPath)?.ToLowerInvariant();
+
+            // Provider selection rules:
+            // - .accdb: requires ACE (Jet cannot open it)
+            // - .mdb: prefer Jet (works without installing ACE, but 32-bit only), fallback to ACE if present
+            var candidates = ext == ".accdb"
+                ? new[] { "Microsoft.ACE.OLEDB.16.0", "Microsoft.ACE.OLEDB.12.0" }
+                : new[] { "Microsoft.Jet.OLEDB.4.0", "Microsoft.ACE.OLEDB.16.0", "Microsoft.ACE.OLEDB.12.0" };
 
             Exception last = null;
             foreach (var provider in candidates)
@@ -126,12 +129,41 @@ namespace MiAllScaleTools.Services
                 }
                 catch (Exception ex)
                 {
+                    // Only fall back when the provider isn't installed / registered.
+                    if (!IsProviderMissing(ex))
+                        throw;
+
                     last = ex;
                 }
             }
 
             providerUsed = "(none)";
-            throw new InvalidOperationException("无法打开 Access 数据库：未找到可用的 OLEDB Provider（ACE/Jet）。", last);
+            throw new InvalidOperationException(
+                "无法打开 Access 数据库：未找到可用的 OLEDB Provider（ACE/Jet）。" +
+                "常见原因：程序以 64 位运行导致 Jet 4.0 不可用，或未安装 Microsoft Access Database Engine（ACE）。" +
+                "解决方式：若数据库是 .mdb，优先使用 x86 版本运行；若是 .accdb，请安装与程序位数一致的 ACE 驱动（2010/2016）。" +
+                $"（尝试过的 Provider: {string.Join(", ", candidates)}）",
+                last);
+        }
+
+        private static bool IsProviderMissing(Exception ex)
+        {
+            // Typical messages:
+            // - "The 'Microsoft.ACE.OLEDB.12.0' provider is not registered on the local machine."
+            // - "未在本地计算机上注册 'Microsoft.Jet.OLEDB.4.0' 提供程序。"
+            if (ex is OleDbException) return false;
+
+            var msg = ex.Message ?? "";
+            if (msg.IndexOf("provider is not registered", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (msg.IndexOf("未在本地计算机上注册", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+            if (msg.IndexOf("找不到", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                msg.IndexOf("provider", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+
+            // Some environments surface this as COMException with REGDB_E_CLASSNOTREG (0x80040154).
+            if (ex is COMException comEx && comEx.ErrorCode == unchecked((int)0x80040154)) return true;
+
+            // Walk inner exceptions too.
+            return ex.InnerException != null && IsProviderMissing(ex.InnerException);
         }
     }
 }

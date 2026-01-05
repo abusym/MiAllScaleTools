@@ -1,10 +1,8 @@
 ﻿using System.Windows;
 using System.Windows.Input;
 using MiAllScaleTools.Configuration;
-using MiAllScaleTools.Models;
 using MiAllScaleTools.Services;
 using System;
-using System.Collections.ObjectModel;
 using System.Threading;
 
 namespace MiAllScaleTools
@@ -16,12 +14,10 @@ namespace MiAllScaleTools
     {
         private AppSettings _settings = new AppSettings();
         private CancellationTokenSource _cts;
-        private readonly ObservableCollection<SyncRow> _rows = new ObservableCollection<SyncRow>();
 
         public MainWindow()
         {
             InitializeComponent();
-            DgResults.ItemsSource = _rows;
             LoadSettings(AppSettingsStore.Load());
         }
 
@@ -60,7 +56,7 @@ namespace MiAllScaleTools
                     string.IsNullOrWhiteSpace(_settings.MiAll.ConnectionString) ||
                     string.IsNullOrWhiteSpace(_settings.MiAll.ScaleGoodsTypeName))
                 {
-                    MessageBox.Show("请先在“设置”中配置 SQLite 路径和 MiAll 连接信息。", "提示");
+                    MessageBox.Show("请先在“设置”中配置 Access 数据库路径（mscale.mdb）和 MiAll 连接信息。", "提示");
                     return;
                 }
 
@@ -68,10 +64,10 @@ namespace MiAllScaleTools
                 SetRunningState(isRunning: true);
                 TbSummary.Text = "";
                 Progress.Value = 0;
-                _rows.Clear();
+                TbLog.Text = "";
 
                 var barcodeTransformer = new BarcodeTransformer();
-                var scaleReader = new SqliteScaleGoodsReader(_settings.Scale, barcodeTransformer);
+                var scaleReader = new AccessScaleGoodsReader(_settings.Scale, barcodeTransformer);
                 var miAllRepo = new SqlServerMiAllGoodsRepository(_settings.MiAll);
                 var sync = new SyncService(scaleReader, miAllRepo, _settings.Sync);
 
@@ -81,22 +77,14 @@ namespace MiAllScaleTools
                     if (p.Total > 0)
                         Progress.Value = Clamp(p.Current * 100.0 / p.Total, 0, 100);
 
-                    // 每个商品完成后，实时追加一行到明细表
+                    // 每个商品完成后，实时追加一行到文本明细
                     if (p.Good != null && p.Succeeded.HasValue)
                     {
-                        _rows.Add(new SyncRow
-                        {
-                            Index = p.ItemIndex ?? _rows.Count + 1,
-                            Name = p.Good.Name,
-                            Barcode = p.Good.Barcode,
-                            Price = p.Good.Price,
-                            Succeeded = p.Succeeded.Value,
-                            Result = p.Succeeded.Value ? (p.ResultText ?? "成功") : ("失败：" + (p.ResultText ?? "")),
-                            Time = DateTime.Now
-                        });
-
-                        if (_rows.Count > 0)
-                            DgResults.ScrollIntoView(_rows[_rows.Count - 1]);
+                        var time = DateTime.Now.ToString("HH:mm:ss");
+                        var resultText = p.Succeeded.Value ? (p.ResultText ?? "成功") : ("失败：" + (p.ResultText ?? ""));
+                        TbLog.AppendText($"[{time}] {p.ItemIndex}/{p.Total} {resultText} | {p.Good.Name} | {p.Good.Price} | {p.Good.Barcode}{Environment.NewLine}");
+                        TbLog.CaretIndex = TbLog.Text.Length;
+                        TbLog.ScrollToEnd();
                     }
                 });
 
@@ -124,7 +112,7 @@ namespace MiAllScaleTools
         private void LoadSettings(AppSettings settings)
         {
             _settings = settings ?? new AppSettings();
-            TbStatus.Text = string.IsNullOrWhiteSpace(_settings.Scale.DbPath) ? "请先在“设置”中配置 SQLite 路径" : "就绪";
+            TbStatus.Text = string.IsNullOrWhiteSpace(_settings.Scale.DbPath) ? "请先在“设置”中配置 Access 数据库路径（mscale.mdb）" : "就绪";
         }
 
         private static double Clamp(double value, double min, double max)

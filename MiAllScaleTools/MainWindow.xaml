@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MiAllScaleTools"
         mc:Ignorable="d"
-        Title="秘奥电子秤数据同步工具 - 中非E113A研发" Height="540" Width="760" MinHeight="500" MinWidth="720"
+        Title="秘奥电子秤数据同步工具 - 中非E113A研发" Height="450" Width="760" MinHeight="450" MinWidth="720"
         FontSize="14"
         FontFamily="Microsoft YaHei UI"
         Background="{DynamicResource AppBackgroundBrush}"
@@ -242,13 +242,15 @@
 
                 <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <Button x:Name="BtnSettings"
-                            Width="110" Height="40"
+                            Width="110" Height="60"
                             Margin="0,0,10,0"
+                            FontSize="20"
                             Style="{StaticResource SecondaryButtonStyle}"
                             Click="BtnSettings_Click"
                             Content="设置"/>
                     <Button x:Name="BtnRun"
-                            Width="150" Height="40"
+                            Width="150" Height="60"
+                            FontSize="20"
                             Style="{StaticResource PrimaryButtonStyle}"
                             Click="BtnRun_Click"
                             Content="开始同步 (F5)"/>
@@ -277,33 +279,23 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <GroupBox Grid.Column="0" Grid.Row="0" Header="同步明细" Padding="0">
-                <DataGrid x:Name="DgResults"
-                          AutoGenerateColumns="False"
-                          IsReadOnly="True"
-                          CanUserAddRows="False"
-                          FontSize="14"
-                          Margin="0">
-                    <DataGrid.RowStyle>
-                        <Style TargetType="DataGridRow">
-                            <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
-                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Succeeded}" Value="True">
-                                    <Setter Property="Background" Value="{StaticResource SuccessRowBrush}"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Succeeded}" Value="False">
-                                    <Setter Property="Background" Value="{StaticResource FailRowBrush}"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DataGrid.RowStyle>
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="序号" Binding="{Binding Index}" Width="70"/>
-                        <DataGridTextColumn Header="名称" Binding="{Binding Name}" Width="*"/>
-                        <DataGridTextColumn Header="价格" Binding="{Binding Price}" Width="90"/>
-                        <DataGridTextColumn Header="结果" Binding="{Binding Result}" Width="280"/>
-                    </DataGrid.Columns>
-                </DataGrid>
+                <TextBox x:Name="TbLog"
+                         Margin="0"
+                         Padding="12,10"
+                         IsReadOnly="True"
+                         VerticalContentAlignment="Top"
+                         VerticalAlignment="Stretch"
+                         HorizontalAlignment="Stretch"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Disabled"
+                         AcceptsReturn="True"
+                         AcceptsTab="True"
+                         FontSize="13"
+                         FontFamily="Consolas"
+                         Background="{StaticResource CardBackgroundBrush}"
+                         BorderBrush="{StaticResource CardBorderBrush}"
+                         BorderThickness="1"/>
             </GroupBox>
         </Grid>
     </Grid>

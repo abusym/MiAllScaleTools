@@ -30,9 +30,9 @@
                     </StackPanel>
                 </Border>
 
-                <GroupBox Header="电子秤 SQLite" Padding="10" Margin="0,0,0,12">
+                <GroupBox Header="电子秤 Access（mscale.mdb）" Padding="10" Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Text="SQLite 数据库文件路径"/>
+                        <TextBlock Text="Access 数据库文件路径（.mdb / .accdb）"/>
                         <DockPanel Margin="0,6,0,0" LastChildFill="True">
                             <Button DockPanel.Dock="Right"
                                     Margin="10,0,0,0"

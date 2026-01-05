@@ -19,6 +19,17 @@ namespace MiAllScaleTools
             InitializeComponent();
             _settings = current ?? new AppSettings();
 
+            // Defensive: tolerate partially-null settings coming from JSON
+            if (_settings.Scale == null) _settings.Scale = new ScaleSettings();
+            if (_settings.MiAll == null) _settings.MiAll = new MiAllSettings();
+            if (_settings.Sync == null) _settings.Sync = new SyncSettings();
+
+            if (string.IsNullOrWhiteSpace(_settings.Scale.DbPath))
+                _settings.Scale.DbPath = ScaleSettings.DefaultDbPath;
+
+            if (string.IsNullOrWhiteSpace(_settings.MiAll.ConnectionString))
+                _settings.MiAll.ConnectionString = MiAllSettings.DefaultConnectionString;
+
             TbScaleDbPath.Text = _settings.Scale.DbPath;
             TbSqlConn.Text = _settings.MiAll.ConnectionString;
             TbGoodsTypeName.Text = _settings.MiAll.ScaleGoodsTypeName;
@@ -28,8 +39,8 @@ namespace MiAllScaleTools
         {
             var dlg = new OpenFileDialog
             {
-                Filter = "SQLite (*.db;*.sqlite;*.sqlite3)|*.db;*.sqlite;*.sqlite3|All files (*.*)|*.*",
-                Title = "选择电子秤 SQLite 数据库文件"
+                Filter = "Access Database (*.mdb;*.accdb)|*.mdb;*.accdb|All files (*.*)|*.*",
+                Title = "选择电子秤 Access 数据库文件（mscale.mdb）"
             };
 
             if (dlg.ShowDialog(this) == true)
@@ -55,7 +66,7 @@ namespace MiAllScaleTools
                 next.Sync = _settings.Sync;
 
                 if (string.IsNullOrWhiteSpace(next.Scale.DbPath))
-                    throw new InvalidOperationException("请先选择 SQLite 数据库文件路径。");
+                    throw new InvalidOperationException("请先选择 Access 数据库文件路径（.mdb/.accdb）。");
 
                 _settings = next;
                 AppSettingsStore.Save(_settings);
